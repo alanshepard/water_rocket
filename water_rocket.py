@@ -1,5 +1,5 @@
 from scipy.integrate import ode
-from math import sqrt
+from math import sqrt, pi, cos, sin
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -12,17 +12,18 @@ gamma=1.4
 nozzleArea=22e-3**2*3.1416/4
 totalVolume=2e-3
 Cd=.75
-m0=50e-3
+m0 = 50e-3 
 S=.008 #Surface area exposed to the flow
 g=9.81
 ########################
 
 #### INITIAL VALUES ####
-t = [0]
-P = [500e3]
-V = [1e-3]
-vx = [1e-9]
-vz = [1e-9]
+theta = 90 * pi/180 
+t = [ 0 ]
+P = [ 500e3 ]
+V = [ 1e-3 ] #initial air volume
+vx = [1e-6* cos(theta)]
+vz = [1e-6* sin(theta)]
 x = [0]
 z = [0]
 #########################
@@ -33,16 +34,19 @@ def f(t, y, with_water):
     """System of differential equations, returns dy/dt
     with_water --- True or false, determine if there is water in the bottle
     """
-   
+
     P = y[0] #manometric pressure inside the rocket
     V = y[1] #air volume
     vx = y[2] #velocity
-    vy = y[3]
+    vz = y[3]
     x = y[4] 
     z  = y[5]#height
+    v=sqrt(vx**2+vz**2)
 
     dydt=np.zeros(6)
-    
+
+ 
+
     if with_water: 
         Q = signal(P)*sqrt(2*abs(P)/rhoWater)*nozzleArea #Q: volumetric flow rate
         waterVolume=totalVolume-V
@@ -57,16 +61,11 @@ def f(t, y, with_water):
     dydt[0] = -(P * gamma * Q) / V
     dydt[1] = Q
 
-    D = signal(v) * Cd*S*v**2 #drag
+    D = Cd*S*v**2 #drag
     m = m0+waterVolume*rhoWater
-    ax = (F-D)*vx/(m*sqrt(vz**2+vx**2))
-    az = (F-D)*vz/(m*sqrt(vz**2+vx**2)) - g #acceleration
-    #print (a)
-    #print (v)
-    #print (F)
-    #print (D)
-    #print (m)
-    #print("")
+    ax = (F-D)*vx/(m*v)
+    az = (F-D)*vz/(m*v) - g #acceleration
+    
     dydt[2] = ax
     dydt[3] = az
     dydt[4] = vx #dx/dt = vx
@@ -128,8 +127,15 @@ while z[-1]>0:
     x.append(solution[4])
     z.append(solution[5])
 
+v=np.sqrt(np.power(vx,2)+np.power(vz,2))
 
+print('Velocidade Máxima: ' )
+print(np.max(v))
+print('Altura Máxima: ')
+print(np.max(z))
+print('Alcance: ')
+print(np.max(x))
 
 plt.grid()
-plt.plot(x, z)
+plt.plot(t, v)
 plt.show()
